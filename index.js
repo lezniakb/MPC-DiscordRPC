@@ -9,6 +9,7 @@ const uri = `http://127.0.0.1:${config.port}/variables.html`;
 let rpc;
 let isConnectedToDiscord = false;
 let mpcCheckInterval = null;
+let lastMpcStatus = false;
 
 if (isNaN(config.port)) {
     throw new Error('Port is empty or invalid in config.js');
@@ -49,7 +50,7 @@ async function connectToDiscord() {
 function startMpcLoop() {
     if (mpcCheckInterval) clearInterval(mpcCheckInterval);
     checkMpc(); 
-    mpcCheckInterval = setInterval(checkMpc, 5000);
+    mpcCheckInterval = setInterval(checkMpc, 2000);
 }
 
 function stopMpcLoop() {
@@ -70,8 +71,13 @@ async function checkMpc() {
         const serverHeader = response.headers.get('server') || 'MPC';
         
         updatePresence(html, serverHeader, rpc);
+		lastMpcStatus = true;
     } catch (err) {
-        
+        if (lastMpcStatus) {
+            log.info('INFO: Lost connection to MPC-HC. Clearing Rich Presence.');
+            rpc.clearActivity().catch(() => {});
+            lastMpcStatus = false;
+        }
     }
 }
 
